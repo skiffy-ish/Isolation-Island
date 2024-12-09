@@ -1,0 +1,289 @@
+import arcade
+import math
+import random
+
+# Constants
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 400
+PLAYER_WIDTH = 30
+PLAYER_HEIGHT = 30
+FISH_WIDTH = 40
+FISH_HEIGHT = 15
+FISHING_ROD_WIDTH = 10
+FISHING_ROD_HEIGHT = 10
+NUM_FISH = 15
+PLAYER_SPEED = 2
+MAX_RODS = 2
+ROD_SPEED = 2
+FISH_SPEED = 1
+
+
+class Player():
+    def __init__(self,x,y,color):
+        self.x = x
+        self.y = y
+        self.color = color
+
+        # global variables
+        Player.leftpressed = False
+        Player.rightpressed = False
+        self.health = 5
+        self.fish_eaten = 0
+        
+
+class Fish():
+    def __init__(self,x,y,x_vel,color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))):
+        self.x = x
+        self.y = y
+        self.x_vel = x_vel
+        self.color = color
+        Fish.population += 1
+    
+    population = 0
+        
+
+class FishingRod():
+    def __init__(self,x,y,color):
+        self.x = x
+        self.y = y
+        self.color = color
+
+class MyGame(arcade.Window):
+    def __init__(self):
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Fishing Game")
+        #tutorial_view = LoreTutorial(100,100,"test")
+        #self.window.show_view(tutorial_view)
+        #arcade.run()
+        self.player_list = None
+        self.fish_list = None
+        self.fishing_rod_list = None
+
+        
+        arcade.set_background_color((50,50,200))
+        self.total_time = 0
+        self.timer_text = arcade.Text("Time: 00:00", SCREEN_WIDTH - 125, 20, arcade.color.WHITE, 14)
+        self.checktime = False
+        self.death = False
+        self.started = False
+        self.victory = False
+
+    def setup(self):
+        self.player_list = []
+        self.fish_list = []
+        self.fishing_rod_list = []
+        self.day = 0
+
+        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT - 50, (100,100,100))
+        self.player_list.append(self.player)
+
+        for i in range(NUM_FISH):
+            var = random.randint(-8,8)/16
+            chance = bool(random.randint(0,1))
+            if chance:
+                chance = FISH_SPEED + var
+            else:
+                chance = -(FISH_SPEED + var)
+            fish = Fish(random.randint(FISH_WIDTH, SCREEN_WIDTH-FISH_WIDTH), random.randint(FISH_HEIGHT, SCREEN_HEIGHT-FISH_HEIGHT-75), chance, (random.randint(0,150),random.randint(0,150),100))
+            self.fish_list.append(fish)
+        
+
+    def on_draw(self):
+        arcade.start_render()
+        for player in self.player_list:
+            arcade.draw_rectangle_filled(player.x, player.y, PLAYER_WIDTH, PLAYER_HEIGHT, (100,100,100))
+            # eyes
+            arcade.draw_circle_filled(player.x - 7.5, player.y + 5, 5, (0,0,0))
+            arcade.draw_circle_filled(player.x + 7.5, player.y + 5, 5, (0,0,0))
+        for fish in self.fish_list:
+            negative = 0
+            if fish.x_vel < 0:
+                negative = -1
+            else:
+                negative = 1
+            arcade.draw_rectangle_filled(fish.x, fish.y, FISH_WIDTH, FISH_HEIGHT, fish.color)
+            # eyes
+            arcade.draw_circle_filled(fish.x + (FISH_WIDTH//2 * negative), fish.y, 5, (0,0,0))
+            # tail
+            arcade.draw_triangle_filled(fish.x +((FISH_WIDTH//2) * -negative), fish.y,
+                                        fish.x +((FISH_WIDTH//2 + 10) * -negative), fish.y + FISH_HEIGHT//1.5,
+                                        fish.x +((FISH_WIDTH//2 + 10) * -negative), fish.y - FISH_HEIGHT//1.5, fish.color)
+        for rod in self.fishing_rod_list:
+            arcade.draw_rectangle_filled(rod.x, rod.y, FISHING_ROD_WIDTH, FISHING_ROD_HEIGHT, (50,50,50))
+            arcade.draw_line(self.player.x, self.player.y, rod.x, rod.y, rod.color, 3)
+        #start game
+        if self.started == False:
+            arcade.draw_text("Isolation Island", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, arcade.color.MEDIUM_PERSIAN_BLUE, font_size=50, anchor_x="center")
+            arcade.draw_text("Press enter key to start", SCREEN_WIDTH/2, 375, arcade.color.MEDIUM_PERSIAN_BLUE, font_size=20, anchor_x="center")
+        # Health
+        health_text = f"Health: {player.health}"
+        arcade.draw_text(health_text, 10, SCREEN_HEIGHT - 20, arcade.color.RED, 14)
+        #Time
+        self.timer_text.draw()
+        #Population
+        output = f"Fish population: {Fish.population}"
+        arcade.draw_text(output, 10, 20, arcade.color.WHITE, 14)
+        output = f"Day: {self.day}"
+        arcade.draw_text(output, SCREEN_WIDTH - 75, SCREEN_HEIGHT - 20, arcade.color.YELLOW, 14)
+        if self.death == True:
+            arcade.draw_text("GAME OVER. You starved to death.", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 100, arcade.color.WHITE, font_size=30, width=1000, anchor_x="center")
+        if self.victory == True:
+            arcade.draw_text("A rescue boat appears and you are saved! points (number of fish in the ocean): ",Fish.population, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, arcade.color.WHITE, font_size=20, anchor_x="center")
+    def on_update(self, delta_time):
+        # Timer
+        self.total_time += delta_time
+        minutes = int(self.total_time) // 60
+        seconds = int(self.total_time) % 60
+        self.timer_text.text = f"Time: {minutes:02d}:{seconds:02d}"
+        
+        if seconds % 20 != 0:
+            self.checktime = True
+        if seconds % 20 == 0 and seconds != 0 and self.checktime == True:
+            newfishnum = int((len(self.fish_list)) * 1.5)
+            if newfishnum > 10:
+                newfishnum = 10
+            for i in range(newfishnum):
+                var = random.randint(-8,8)/16
+                chance = bool(random.randint(0,1))
+                if chance:
+                    chance = FISH_SPEED + var
+                else:
+                    chance = -(FISH_SPEED + var)
+                fish = Fish(random.randint(FISH_WIDTH, SCREEN_WIDTH-FISH_WIDTH), random.randint(FISH_HEIGHT, SCREEN_HEIGHT-FISH_HEIGHT-75), chance, (random.randint(0,150),random.randint(0,150),100))
+                self.fish_list.append(fish)
+            self.checktime = False
+
+            self.day += 1
+
+            self.player.health -= 5
+            self.player.health += self.player.fish_eaten
+            if self.player.health > 5:
+                self.player.health = 5
+            
+            self.player.fish_eaten = 0
+            
+            self.check_fish_population()
+            self.check_player_health()
+            self.check_day()
+
+
+        # Move fish
+        for fish in self.fish_list:
+            if fish.x < FISH_WIDTH//2:
+                fish.x = FISH_WIDTH//2
+                fish.x_vel = -fish.x_vel
+            if fish.x > SCREEN_WIDTH - FISH_WIDTH//2:
+                fish.x = SCREEN_WIDTH - FISH_WIDTH//2
+                fish.x_vel = -fish.x_vel
+            
+            chance = random.randint(1,200)
+            if chance <= 1:
+                fish.x_vel = -fish.x_vel
+
+            fish.x += fish.x_vel
+
+                
+
+        if Player.leftpressed == True:
+            self.player.x -= PLAYER_SPEED
+        
+        if Player.rightpressed == True:
+            self.player.x += PLAYER_SPEED
+
+        # Move rods down
+        for rod in self.fishing_rod_list:
+            rod.y -= ROD_SPEED
+            if rod.y < 0:
+                if len(self.fishing_rod_list) > 0 and rod in self.fishing_rod_list:
+                    self.fishing_rod_list.remove(rod)
+
+        # rod collides with fish
+            for fish in self.fish_list:
+                if abs(fish.x - rod.x) < (FISH_WIDTH + FISHING_ROD_WIDTH)/2 and abs(fish.y - rod.y) < (FISH_HEIGHT + FISHING_ROD_HEIGHT)/2:
+                    if len(self.fish_list) > 0:
+                        self.fish_list.remove(fish)
+                    if len(self.fishing_rod_list) > 0 and rod in self.fishing_rod_list:
+                        self.fishing_rod_list.remove(rod)
+                    Fish.population -= 1
+                    self.player.fish_eaten += 1
+        
+
+        # Wall collision
+        if self.player.x < PLAYER_WIDTH//2:
+            self.player.x = PLAYER_WIDTH//2
+        if self.player.x > SCREEN_WIDTH - PLAYER_WIDTH//2:
+            self.player.x = SCREEN_WIDTH - PLAYER_WIDTH//2
+    
+    def player_fish(self):
+        rod = FishingRod(self.player.x, self.player.y - PLAYER_HEIGHT//2, (50,50,50))
+        self.fishing_rod_list.append(rod)
+
+    def on_key_press(self, key, modifiers):
+        if key == 32:
+            if len(self.fishing_rod_list) < MAX_RODS:
+                self.player_fish()
+        if key == arcade.key.LEFT:
+            Player.leftpressed = True
+        elif key == arcade.key.RIGHT:
+            Player.rightpressed = True
+        if key == arcade.key.ENTER:
+            self.started = True
+            
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.LEFT:
+            Player.leftpressed = False
+        elif key == arcade.key.RIGHT:
+            Player.rightpressed = False
+
+    def stats(self):
+        if self.player.fish_eaten <= 5:
+            self.player.health -= 5 + self.player.fish_eaten
+
+        if self.player.fish_eaten >= 5:
+            self.player.health += self.player.fish_eaten - 5
+
+        predators = random.randint(0,4)
+        Fish.population = Fish.population - predators
+
+        Fish.population = Fish.population - self.player.fish_eaten
+
+        print("Day: ", self.day)
+        print("Fish in ocean: ",Fish.population)
+
+    def check_fish_population(self):
+        if Fish.population == 5:
+            print("WARNING: Dangerously low amount of fish in the ocean, there may not be enough to sustain yourself. Make sure not to overfish.")
+
+        elif Fish.population == 1:
+            print("death")
+            arcade.set_background_color(arcade.color.BLACK)
+            self.death = True
+    
+    def check_player_health(self):
+        if self.player.health == 1:
+            print("WARNING: Health dangerously low. Eat more fish to gain health.")
+        
+        elif self.player.health <= 0:
+            print("death")
+            self.death = True
+            arcade.set_background_color(arcade.color.BLACK)
+            
+    #player dies
+
+    def check_day(self):
+        if self.day == 14:
+            arcade.set_background_color(arcade.color.FRESH_AIR)
+            self.victory = True
+            
+    #you win
+
+
+
+def main():
+    """ Main method """
+    window = MyGame()
+    window.setup()
+    arcade.run()
+    
+
+if __name__ == "__main__":
+    main()
