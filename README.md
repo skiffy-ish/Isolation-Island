@@ -1,3 +1,4 @@
 # Isolation-Island
-Game for EPS Hackathon 2024
+Game for EPS Hackathon 2024.
+
 Our game helps to inform the public of the dangers of overfishing and attempts to prevent overfishing through awareness. It does this by starting with 20 fish in the ocean. Every day the remaining fish population doubles. The player starts with 10 health and can fish to gain health. The player gets one health per fish. At the end of each day, the player will lose 5 health. In order to maintain full health, the player needs to fish 5 fish per day. However, the player can also fish for extra fish, but if they choose to do so, they must be careful. If the player overfishes to the point where there are either no fish or only one fish left, then the player will die of starvation. This mirrors what will eventually happen in real life if overfishing continues unchecked and what the ill effects of overfishing are, as gluttony to the point of extinction would mean the starvation of humans. If the player survives 30 days, then a rescue boat arrives and the number of fish left in the ocean is the number of points the player obtained.
